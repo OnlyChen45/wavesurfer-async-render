@@ -1,4 +1,4 @@
-import EventEmitter from './event-emitter.js'
+import EventEmitter from './event-emitter.ts'
 
 type TimerEvents = {
   tick: []

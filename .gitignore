@@ -11,3 +11,12 @@ cypress/**/__diff_output__/
 coverage/
 eslint_report.json
 .beads/
+yarn.lock
+examples/audio/long-audio/*
+AGENTS.md
+
+# wasm packaging results
+/surfer-calc-module/target
+/surfer-calc-module/target/*
+/surfer-calc-module/pkg
+/surfer-calc-module/pkg/*

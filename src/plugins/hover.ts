@@ -2,10 +2,10 @@
  * The Hover plugin follows the mouse and shows a timestamp
  */
 
-import BasePlugin, { type BasePluginEvents } from '../base-plugin.js'
-import createElement from '../dom.js'
-import { fromEvent } from '../reactive/event-streams.js'
-import { effect } from '../reactive/store.js'
+import BasePlugin, { type BasePluginEvents } from '../base-plugin.ts'
+import createElement from '../dom.ts'
+import { fromEvent } from '../reactive/event-streams.ts'
+import { effect } from '../reactive/store.ts'
 
 export type HoverPluginOptions = {
   /** The hover cursor color (playback cursor and progress mask colors used as falllback in this order)

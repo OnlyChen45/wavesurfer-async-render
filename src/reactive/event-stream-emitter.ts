@@ -5,8 +5,8 @@
  * This allows users to choose between callback-based and stream-based APIs.
  */
 
-import { signal, type Signal, type WritableSignal } from './store.js'
-import type EventEmitter from '../event-emitter.js'
+import { signal, type Signal, type WritableSignal } from './store.ts'
+import type EventEmitter from '../event-emitter.ts'
 
 /**
  * Convert an EventEmitter event to a reactive signal/stream
@@ -161,8 +161,8 @@ export function mapStream<T, U>(source: Signal<T>, mapper: (value: T) => U): Sig
     result.set(mapper(value))
   })
 
-  // Store cleanup
-  ;(result as any)._cleanup = unsubscribe
+    // Store cleanup
+    ; (result as any)._cleanup = unsubscribe
 
   return result
 }
@@ -188,8 +188,8 @@ export function filterStream<T>(source: Signal<T>, predicate: (value: T) => bool
     }
   })
 
-  // Store cleanup
-  ;(result as any)._cleanup = unsubscribe
+    // Store cleanup
+    ; (result as any)._cleanup = unsubscribe
 
   return result
 }

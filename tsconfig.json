@@ -1,11 +1,16 @@
 {
   "compilerOptions": {
-    "target": "ES6",
+    "target": "es2020",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
     "lib": [
       "ESNext",
-      "DOM"
+      "DOM",
+      "webworker"
     ],
+    "rewriteRelativeImportExtensions": true,
     "allowUmdGlobalAccess": false,
+    "allowImportingTsExtensions": false,
     "declaration": true,
     "outDir": "./dist",
     "esModuleInterop": true,

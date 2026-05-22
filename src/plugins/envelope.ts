@@ -2,11 +2,11 @@
  * Envelope is a visual UI for controlling the audio volume and add fade-in and fade-out effects.
  */
 
-import BasePlugin, { type BasePluginEvents } from '../base-plugin.js'
-import EventEmitter from '../event-emitter.js'
-import createElement from '../dom.js'
-import { createDragStream } from '../reactive/drag-stream.js'
-import { effect } from '../reactive/store.js'
+import BasePlugin, { type BasePluginEvents } from '../base-plugin.ts'
+import EventEmitter from '../event-emitter.ts'
+import createElement from '../dom.ts'
+import { createDragStream } from '../reactive/drag-stream.ts'
+import { effect } from '../reactive/store.ts'
 
 export type EnvelopePoint = {
   id?: string
@@ -107,9 +107,9 @@ class Polyline extends EventEmitter<{
         part: 'polyline',
         style: options.dragLine
           ? {
-              cursor: 'row-resize',
-              pointerEvents: 'stroke',
-            }
+            cursor: 'row-resize',
+            pointerEvents: 'stroke',
+          }
           : {},
       },
       svg,

@@ -7,8 +7,8 @@
 
 // @ts-nocheck
 
-import BasePlugin, { type BasePluginEvents } from '../base-plugin.js'
-import createElement from '../dom.js'
+import BasePlugin, { type BasePluginEvents } from '../base-plugin.ts'
+import createElement from '../dom.ts'
 // Import centralized FFT functionality
 import FFT, {
   hzToScale,
@@ -20,7 +20,7 @@ import FFT, {
   unitType,
   getLabelFrequency,
   createWrapperClickHandler,
-} from '../fft.js'
+} from '../fft.ts'
 
 // Import the worker using rollup-plugin-web-worker-loader
 import SpectrogramWorker from 'web-worker:./spectrogram-worker.ts'
@@ -41,16 +41,16 @@ export type WindowedSpectrogramPluginOptions = {
   noverlap?: number
   /** The window function to be used. */
   windowFunc?:
-    | 'bartlett'
-    | 'bartlettHann'
-    | 'blackman'
-    | 'cosine'
-    | 'gauss'
-    | 'hamming'
-    | 'hann'
-    | 'lanczoz'
-    | 'rectangular'
-    | 'triangular'
+  | 'bartlett'
+  | 'bartlettHann'
+  | 'blackman'
+  | 'cosine'
+  | 'gauss'
+  | 'hamming'
+  | 'hann'
+  | 'lanczoz'
+  | 'rectangular'
+  | 'triangular'
   /** Some window functions have this extra value. (Between 0 and 1) */
   alpha?: number
   /** Min frequency to scale spectrogram. */

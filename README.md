@@ -1,172 +1,137 @@
-# <img src="https://user-images.githubusercontent.com/381895/226091100-f5567a28-7736-4d37-8f84-e08f297b7e1a.png" alt="logo" height="60" valign="middle" /> wavesurfer.js
+# wavesurfer-wasm-async
 
-[![npm](https://img.shields.io/npm/v/wavesurfer.js)](https://www.npmjs.com/package/wavesurfer.js) [![sponsor](https://img.shields.io/badge/sponsor_us-🤍-%23B14586)](https://github.com/sponsors/katspaugh)
+基于 [wavesurfer.js](https://github.com/katspaugh/wavesurfer.js) 的音频波形可视化库，添加了 **Web Worker 异步渲染**与 **WebAssembly (WASM) 加速**补丁。
+测试脚本为 examples/async-render-react.js
 
-**Wavesurfer.js** is an interactive waveform rendering and audio playback library, perfect for web applications. It leverages modern web technologies to provide a robust and visually engaging audio experience.
+本Demo主要作为 **JS Worker** 和 **WASM** 在较长的音频波形渲染场景下的技术验证与 Demo。 
 
-<img width="626" alt="waveform screenshot" src="https://github.com/katspaugh/wavesurfer.js/assets/381895/05f03bed-800e-4fa1-b09a-82a39a1c62ce">
+主要修改了render.ts中的renderLineWaveform方法，将其调用栈均改为了async函数，同时让兼容渲染函数options.renderFunction选项可兼容异步函数。
 
-**Gold sponsor 💖** [Closed Caption Creator](https://www.closedcaptioncreator.com)
+验证结论是，jsworker的引入会显著提升较长音频加载时的用户交互体验， 
 
-# Table of contents
+在测试中对于一段36min 码率195 kbit/s 采样率44.1 kHz的音频，jsworker渲染时间约为0.12s，不存在主进程阻塞问题。 
 
-1. [Getting started](#getting-started)
-2. [API reference](#api-reference)
-3. [Plugins](#plugins)
-4. [CSS styling](#css-styling)
-5. [Frequent questions](#questions)
-6. [Development](#development)
-7. [Tests](#tests)
-8. [Feedback](#feedback)
+基于wasmpack的wasm模块，并未显著较少jswoker的运行时间，对于同一段36min音频，jsworker+wasm渲染时间约为0.1s，其中0.04s为音频数据Float32array复制时间，0.06s为wasm计算时间。 
 
-## Getting started
+此外，本Demo修改了rollup.config,确保了打包的wavesurfer.esm.js是全量的。
 
-Install and import the package:
+## 核心能力
 
-```bash
-npm install --save wavesurfer.js
-```
+- 波形渲染（Canvas 2D）
+- **Web Worker 异步渲染**：将 Channel 波形路径计算 offload 到独立 Worker，避免阻塞主线程
+- **WASM 加速渲染**：使用 Rust + `wasm-bindgen` 在 Worker 内完成高性能路径计算
+
+
+## 渲染模式对比
+
+| 模式 | 路径计算位置 | 特点 | 适用场景 |
+|------|------------|------|---------|
+| `sync` (默认) | 主线程 | 简单直接，无额外依赖 | 短音频、快速集成 |
+| `worker` | Web Worker + WASM | 不阻塞 UI，Rust 高性能计算 | 长音频、高分辨率、复杂波形 |
+
+通过 `renderMode: 'worker'` 开启异步渲染：
+
 ```js
-import WaveSurfer from 'wavesurfer.js'
-```
-
-Alternatively, insert a UMD script tag which exports the library as a global `WaveSurfer` variable:
-```html
-<script src="https://unpkg.com/wavesurfer.js@7"></script>
-```
-
-Create a wavesurfer instance and pass various [options](http://wavesurfer.xyz/docs/options):
-```js
-const wavesurfer = WaveSurfer.create({
+const ws = WaveSurfer.create({
   container: '#waveform',
-  waveColor: '#4F4A85',
-  progressColor: '#383351',
   url: '/audio.mp3',
+  renderMode: 'worker', // 启用 Worker 异步渲染
 })
 ```
 
-To import one of the plugins, e.g. the [Regions plugin](https://wavesurfer.xyz/examples/?regions.js):
-```js
-import Regions from 'wavesurfer.js/dist/plugins/regions.esm.js'
-```
 
-Or as a script tag that will export `WaveSurfer.Regions`:
-```html
-<script src="https://unpkg.com/wavesurfer.js@7/dist/plugins/regions.min.js"></script>
-```
+## Worker 模块架构
 
-TypeScript types are included in the package, so there's no need to install `@types/wavesurfer.js`.
+在 `renderMode: 'worker'` 时，`Renderer` 会实例化一个 Web Worker，通过 [Comlink](https://github.com/GoogleChromeLabs/comlink) 进行 RPC 通信。
 
-See more [examples](https://wavesurfer.xyz/examples).
+### 1. JS Worker（纯 JavaScript）
 
-## API reference
+- **文件**：`src/worker/drawChannel.worker.ts`
+- **作用**：将主线程中的 `calculateLinePaths` 逻辑搬运到 Worker 中执行
+- **价值**：验证"仅迁移计算到 Worker"带来的主线程流畅度提升
 
-See the wavesurfer.js documentation on our website:
+### 2. WASM Worker（Rust + WASM）
 
- * [methods](https://wavesurfer.xyz/docs/methods)
- * [options](http://wavesurfer.xyz/docs/options)
- * [events](http://wavesurfer.xyz/docs/events)
+- **文件**：`src/worker/drawChannelWASM.worker.ts`
+- **Rust 模块**：`surfer-calc-module/src/lib.rs`
+- **核心函数**：`calc_paths(channel_data, index, width, half_height, v_scale) -> PointArrays`
+- **作用**：在 Worker 内部使用 Rust 编译的 WASM 模块计算波形路径点
+- **价值**：验证 Rust/WASM 在密集型浮点运算中的性能优势
 
-## Plugins
-
-We maintain a number of official plugins that add various extra features:
-
- * [Regions](https://wavesurfer.xyz/examples/?regions.js) – visual overlays and markers for regions of audio
- * [Timeline](https://wavesurfer.xyz/examples/?timeline.js) – displays notches and time labels below the waveform
- * [Minimap](https://wavesurfer.xyz/examples/?minimap.js) – a small waveform that serves as a scrollbar for the main waveform
- * [Envelope](https://wavesurfer.xyz/examples/?envelope.js) – a graphical interface to add fade-in and -out effects and control volume
- * [Record](https://wavesurfer.xyz/examples/?record.js) – records audio from the microphone and renders a waveform
- * [Spectrogram](https://wavesurfer.xyz/examples/?spectrogram.js) – visualization of an audio frequency spectrum (written by @akreal)
- * [Hover](https://wavesurfer.xyz/examples/?hover.js) – shows a vertical line and timestmap on waveform hover
-
-## CSS styling
-
-wavesurfer.js v7 is rendered into a Shadow DOM tree. This isolates its CSS from the rest of the web page.
-However, it's still possible to style various wavesurfer.js elements with CSS via the `::part()` pseudo-selector.
-For example:
-
-```css
-#waveform ::part(cursor):before {
-  content: '🏄';
-}
-#waveform ::part(region) {
-  font-family: fantasy;
-}
-```
-
-You can see which elements you can style in the DOM inspector – they will have a `part` attribute.
-See [this example](https://wavesurfer.xyz/examples/?styling.js) to play around with styling.
-
-## Questions
-
-Have a question about integrating wavesurfer.js on your website? Feel free to ask in our [Discussions forum](https://github.com/wavesurfer-js/wavesurfer.js/discussions/categories/q-a).
-
-However, please keep in mind that this forum is dedicated to wavesurfer-specific questions. If you're new to JavaScript and need help with the general basics like importing NPM modules, please consider asking ChatGPT or StackOverflow first.
-
-### FAQ
-
-<details>
-  <summary>I'm having CORS issues</summary>
-  Wavesurfer fetches audio from the URL you specify in order to decode it. Make sure this URL allows fetching data from your domain. In browser JavaScript, you can only fetch data eithetr from <b>the same domain</b> or another domain if and only if that domain enables <a href="https://developer.mozilla.org/en-US/docs/Web/HTTP/CORS">CORS</a>. So if your audio file is on an external domain, make sure that domain sends the right Access-Control-Allow-Origin headers. There's nothing you can do about it from the requesting side (i.e. your JS code).
-</details>
-
-<details>
-  <summary>Does wavesurfer support large files?</summary>
-  Since wavesurfer decodes audio entirely in the browser using Web Audio, large clips may fail to decode due to memory constraints. We recommend using pre-decoded peaks for large files (see <a href="https://wavesurfer.xyz/examples/?predecoded.js">this example</a>). You can use a tool like <a href="https://codeberg.org/chrisn/audiowaveform">audiowaveform</a> to generate peaks.
-</details>
-
-<details>
-  <summary>What about streaming audio?</summary>
-  Streaming audio is supported only with <a href="https://wavesurfer.xyz/examples/?predecoded.js">pre-decoded peaks and duration</a>.
-</details>
-
-<details>
-  <summary>There is a mismatch between my audio and the waveform. How do I fix it?</summary>
-  If you're using a VBR (variable bit rate) audio file, there might be a mismatch between the audio and the waveform. This can be fixed by converting your file to CBR (constant bit rate).
-  <p>Alternatively, you can use the <a href="https://wavesurfer.xyz/examples/?webaudio-shim.js">Web Audio shim</a> which is more accurate.</p>
-</details>
-
-<details>
-  <summary>How do I connect wavesurfer.js to Web Audio effects?</summary>
-Generally, wavesurfer.js doesn't aim to be a wrapper for all things Web Audio. It's just a player with a waveform visualization. It does allow connecting itself to a Web Audio graph by exporting its audio element (see <a href="https://wavesurfer.xyz/examples/?4436ec40a2ab943243755e659ae32196">this example</a>) but nothign more than that. Please don't expect wavesurfer to be able to cut, add effects, or process your audio in any way.
-</details>
-
-## Development
-
-To get started with development, follow these steps:
-
- 1. Install dev dependencies:
+### 3. 数据流
 
 ```
-yarn
+Renderer (主线程)
+    │
+    ├── 同步模式 ──► utils.calculateLinePaths() ──► Canvas
+    │
+    └── Worker 模式 ──► Comlink.transfer(Float32Array) ──► Worker
+                              │
+                              ├── JS Worker  →  纯 JS 路径计算
+                              └── WASM Worker →  Rust calc_paths()
+                              │
+                              ◄── Promise<LinePath[]> ──► Canvas 绘制
 ```
 
- 2. Start the TypeScript compiler in watch mode and launch an HTTP server:
+> Worker 模式下，音频 Channel 数据通过 `Comlink.transfer()` 以 **zero-copy** 方式传入 Worker，避免大数组的序列化开销。
 
+
+## 快速开始
+
+### 安装依赖
+
+```bash
+yarn install
 ```
+
+### 构建 WASM 模块
+
+```bash
+yarn build:wasm
+```
+
+### 开发模式
+
+```bash
 yarn start
+# 或分别执行
+yarn build:dev
+yarn serve
 ```
 
-This command will open http://localhost:9090 in your browser with live reload, allowing you to see the changes as you develop.
+访问 `http://localhost:9090`，在左侧导航选择 **Async-render-react** 即可体验 Worker 渲染效果。
 
-## Tests
+### 生产构建
 
-The tests are written in the Cypress framework. They are a mix of e2e and visual regression tests.
-
-To run the test suite locally, first build the project:
-```
+```bash
 yarn build
 ```
 
-Then launch the tests:
+
+## 示例：React + Worker 渲染
+
+`examples/async-render-react.js` 演示了在 React 中使用 `renderMode: 'worker'`：
+
+```js
+import { useWavesurfer } from 'wavesurfer.js/dist/useWavesurfer/index.js'
+import Timeline from 'wavesurfer.js/dist/plugins/timeline.esm.js'
+
+const App = () => {
+  const containerRef = useRef(null)
+
+  const { wavesurfer, isPlaying, currentTime } = useWavesurfer({
+    container: containerRef,
+    url: '/examples/audio/long-audio/gufengdj4h.mp3',
+    plugins: useMemo(() => [Timeline.create()], []),
+    renderMode: 'worker', // <-- 关键：启用异步 Worker 渲染
+  })
+
+  // ...
+}
 ```
-yarn cypress
-```
 
-## Feedback
+该示例使用长音频文件，更能体现 Worker 异步渲染避免主线程卡顿的优势。
 
-We appreciate your feedback and contributions!
+## License
 
-If you encounter any issues or have suggestions for improvements, please don't hesitate to post in our [forum](https://github.com/wavesurfer-js/wavesurfer.js/discussions/categories/q-a).
-
-We hope you enjoy using wavesurfer.js and look forward to hearing about your experiences with the library!
+BSD-3-Clause

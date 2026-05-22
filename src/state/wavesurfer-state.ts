@@ -5,7 +5,7 @@
  * State is managed using reactive signals that automatically notify subscribers.
  */
 
-import { signal, computed, type Signal, type WritableSignal } from '../reactive/store.js'
+import { signal, computed, type Signal, type WritableSignal } from '../reactive/store.ts'
 
 /**
  * Read-only reactive state for WaveSurfer

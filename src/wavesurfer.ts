@@ -1,13 +1,13 @@
-import BasePlugin, { type GenericPlugin } from './base-plugin.js'
-import Decoder from './decoder.js'
-import * as dom from './dom.js'
-import Fetcher from './fetcher.js'
-import Player from './player.js'
-import Renderer from './renderer.js'
-import Timer from './timer.js'
-import WebAudioPlayer from './webaudio.js'
-import { createWaveSurferState, type WaveSurferState, type WaveSurferActions } from './state/wavesurfer-state.js'
-import { setupStateEventEmission } from './reactive/state-event-emitter.js'
+import BasePlugin, { type GenericPlugin } from './base-plugin.ts'
+import Decoder from './decoder.ts'
+import * as dom from './dom.ts'
+import Fetcher from './fetcher.ts'
+import Player from './player.ts'
+import Renderer from './renderer.ts'
+import Timer from './timer.ts'
+import WebAudioPlayer from './webaudio.ts'
+import { createWaveSurferState, type WaveSurferState, type WaveSurferActions } from './state/wavesurfer-state.ts'
+import { setupStateEventEmission } from './reactive/state-event-emitter.ts'
 
 export type WaveSurferOptions = {
   /** Required: an HTML element or selector where the waveform will be rendered */
@@ -78,6 +78,8 @@ export type WaveSurferOptions = {
   plugins?: GenericPlugin[]
   /** Custom render function */
   renderFunction?: (peaks: Array<Float32Array | number[]>, ctx: CanvasRenderingContext2D) => void
+  /** Implementation of rendering peaks，sync is default mode, worker and wasm is async*/
+  renderMode?: null | 'sync' | 'worker'
   /** Options to pass to the fetch method */
   fetchParams?: RequestInit
   /** Playback "backend" to use, defaults to MediaElement */
@@ -733,7 +735,7 @@ class WaveSurfer extends Player<WaveSurferEvents> {
 }
 
 // Export reactive types for plugin authors
-export type { Signal, WritableSignal } from './reactive/store.js'
-export type { WaveSurferState, WaveSurferActions } from './state/wavesurfer-state.js'
+export type { Signal, WritableSignal } from './reactive/store.ts'
+export type { WaveSurferState, WaveSurferActions } from './state/wavesurfer-state.ts'
 
 export default WaveSurfer

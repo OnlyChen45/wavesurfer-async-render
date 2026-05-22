@@ -4,7 +4,7 @@
  * These utilities allow composing event handling using reactive primitives.
  */
 
-import { signal, type Signal, type WritableSignal } from './store.js'
+import { signal, type Signal, type WritableSignal } from './store.ts'
 
 /**
  * Convert DOM events to a reactive signal
@@ -27,10 +27,10 @@ export function fromEvent<K extends keyof HTMLElementEventMap>(
 
   element.addEventListener(eventName, handler)
 
-  // Store cleanup function on the signal
-  ;(stream as any)._cleanup = () => {
-    element.removeEventListener(eventName, handler)
-  }
+    // Store cleanup function on the signal
+    ; (stream as any)._cleanup = () => {
+      element.removeEventListener(eventName, handler)
+    }
 
   return stream
 }
@@ -48,11 +48,11 @@ export function map<T, U>(source: Signal<T>, mapper: (value: T) => U): Signal<U>
   const result = signal<U>(mapper(source.value))
 
   const unsubscribe = source.subscribe((value) => {
-    ;(result as WritableSignal<U>).set(mapper(value))
+    ; (result as WritableSignal<U>).set(mapper(value))
   })
 
-  // Store cleanup
-  ;(result as any)._cleanup = unsubscribe
+    // Store cleanup
+    ; (result as any)._cleanup = unsubscribe
 
   return result
 }
@@ -72,14 +72,14 @@ export function filter<T>(source: Signal<T>, predicate: (value: T) => boolean): 
 
   const unsubscribe = source.subscribe((value) => {
     if (predicate(value)) {
-      ;(result as WritableSignal<T | null>).set(value)
+      ; (result as WritableSignal<T | null>).set(value)
     } else {
-      ;(result as WritableSignal<T | null>).set(null)
+      ; (result as WritableSignal<T | null>).set(null)
     }
   })
 
-  // Store cleanup
-  ;(result as any)._cleanup = unsubscribe
+    // Store cleanup
+    ; (result as any)._cleanup = unsubscribe
 
   return result
 }
@@ -100,15 +100,15 @@ export function debounce<T>(source: Signal<T>, delay: number): Signal<T> {
   const unsubscribe = source.subscribe((value) => {
     clearTimeout(timeout)
     timeout = setTimeout(() => {
-      ;(result as WritableSignal<T>).set(value)
+      ; (result as WritableSignal<T>).set(value)
     }, delay)
   })
 
-  // Store cleanup that clears timeout and unsubscribes
-  ;(result as any)._cleanup = () => {
-    clearTimeout(timeout)
-    unsubscribe()
-  }
+    // Store cleanup that clears timeout and unsubscribes
+    ; (result as any)._cleanup = () => {
+      clearTimeout(timeout)
+      unsubscribe()
+    }
 
   return result
 }
@@ -136,23 +136,23 @@ export function throttle<T>(source: Signal<T>, delay: number): Signal<T> {
 
     if (timeSinceLastEmit >= delay) {
       // Enough time has passed, emit immediately
-      ;(result as WritableSignal<T>).set(value)
+      ; (result as WritableSignal<T>).set(value)
       lastEmit = now
     } else {
       // Too soon, schedule for later
       clearTimeout(timeout)
       timeout = setTimeout(() => {
-        ;(result as WritableSignal<T>).set(value)
+        ; (result as WritableSignal<T>).set(value)
         lastEmit = Date.now()
       }, delay - timeSinceLastEmit)
     }
   })
 
-  // Store cleanup
-  ;(result as any)._cleanup = () => {
-    clearTimeout(timeout)
-    unsubscribe()
-  }
+    // Store cleanup
+    ; (result as any)._cleanup = () => {
+      clearTimeout(timeout)
+      unsubscribe()
+    }
 
   return result
 }

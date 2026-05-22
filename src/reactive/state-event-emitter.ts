@@ -5,8 +5,8 @@
  * Ensures events are always in sync with state and removes manual emit() calls.
  */
 
-import { effect, type Signal } from './store.js'
-import type { WaveSurferState } from '../state/wavesurfer-state.js'
+import { effect, type Signal } from './store.ts'
+import type { WaveSurferState } from '../state/wavesurfer-state.ts'
 
 export type EventEmitter = {
   emit(event: string, ...args: any[]): void

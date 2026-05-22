@@ -5,7 +5,7 @@
  * Provides a clean separation between imperative media API and reactive state.
  */
 
-import type { WaveSurferActions } from '../state/wavesurfer-state.js'
+import type { WaveSurferActions } from '../state/wavesurfer-state.ts'
 
 /**
  * Bridge HTMLMediaElement events to WaveSurfer state actions

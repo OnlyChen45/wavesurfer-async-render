@@ -2,9 +2,9 @@
  * The Timeline plugin adds timestamps and notches under the waveform.
  */
 
-import BasePlugin, { type BasePluginEvents } from '../base-plugin.js'
-import createElement from '../dom.js'
-import { effect } from '../reactive/store.js'
+import BasePlugin, { type BasePluginEvents } from '../base-plugin.ts'
+import createElement from '../dom.ts'
+import { effect } from '../reactive/store.ts'
 
 export type TimelinePluginOptions = {
   /** The height of the timeline in pixels, defaults to 20 */
@@ -88,7 +88,7 @@ class TimelinePlugin extends BasePlugin<TimelinePluginEvents, TimelinePluginOpti
     }
 
     if (this.options.insertPosition) {
-      ;(container.firstElementChild || container).insertAdjacentElement(
+      ; (container.firstElementChild || container).insertAdjacentElement(
         this.options.insertPosition,
         this.timelineWrapper,
       )
@@ -228,15 +228,15 @@ class TimelinePlugin extends BasePlugin<TimelinePluginEvents, TimelinePluginOpti
         whiteSpace: 'nowrap',
         ...(isTop
           ? {
-              position: 'absolute',
-              top: '0',
-              left: '0',
-              right: '0',
-              zIndex: '2',
-            }
+            position: 'absolute',
+            top: '0',
+            left: '0',
+            right: '0',
+            zIndex: '2',
+          }
           : {
-              position: 'relative',
-            }),
+            position: 'relative',
+          }),
       },
     })
 

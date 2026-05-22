@@ -5,8 +5,8 @@
  * Automatically handles scroll event optimization and cleanup.
  */
 
-import { signal, computed, effect, type Signal } from './store.js'
-import { cleanup } from './event-streams.js'
+import { signal, computed, effect, type Signal } from './store.ts'
+import { cleanup } from './event-streams.ts'
 
 export interface ScrollData {
   /** Current scroll position in pixels */

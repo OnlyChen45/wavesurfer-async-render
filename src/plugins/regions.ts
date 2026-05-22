@@ -4,12 +4,12 @@
  * You can set the color and content of each region, as well as their HTML content.
  */
 
-import BasePlugin, { type BasePluginEvents } from '../base-plugin.js'
-import EventEmitter from '../event-emitter.js'
-import createElement from '../dom.js'
-import { createDragStream } from '../reactive/drag-stream.js'
-import { effect } from '../reactive/store.js'
-import { fromEvent, cleanup as cleanupStream } from '../reactive/event-streams.js'
+import BasePlugin, { type BasePluginEvents } from '../base-plugin.ts'
+import EventEmitter from '../event-emitter.ts'
+import createElement from '../dom.ts'
+import { createDragStream } from '../reactive/drag-stream.ts'
+import { effect } from '../reactive/store.ts'
+import { fromEvent, cleanup as cleanupStream } from '../reactive/event-streams.ts'
 
 export type RegionsPluginOptions = undefined
 export type UpdateSide = 'start' | 'end'

@@ -5,8 +5,8 @@
  * Automatically handles mouseup cleanup and supports constraints.
  */
 
-import { signal, type Signal } from './store.js'
-import { cleanup } from './event-streams.js'
+import { signal, type Signal } from './store.ts'
+import { cleanup } from './event-streams.ts'
 
 export interface DragEvent {
   type: 'start' | 'move' | 'end'

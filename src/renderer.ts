@@ -1,10 +1,11 @@
-import EventEmitter from './event-emitter.js'
-import * as utils from './renderer-utils.js'
-import type { WaveSurferOptions } from './wavesurfer.js'
-import { createDragStream } from './reactive/drag-stream.js'
-import { createScrollStream } from './reactive/scroll-stream.js'
-import { effect } from './reactive/store.js'
-
+import EventEmitter from './event-emitter.ts'
+import * as utils from './renderer-utils.ts'
+import type { WaveSurferOptions } from './wavesurfer.ts'
+import { createDragStream } from './reactive/drag-stream.ts'
+import { createScrollStream } from './reactive/scroll-stream.ts'
+import { effect } from './reactive/store.ts'
+import { DrawApi } from './worker/worker.type.ts'
+import { wrap, releaseProxy, transfer, type Remote } from './comlink/comlink.js'
 type ChannelData = utils.ChannelData
 
 type RendererEvents = {
@@ -38,13 +39,19 @@ class Renderer extends EventEmitter<RendererEvents> {
   private unsubscribeOnScroll: (() => void)[] = []
   private dragStream: { signal: any; cleanup: () => void } | null = null
   private scrollStream: { scrollData: any; percentages: any; bounds: any; cleanup: () => void } | null = null
-
+  private drawWorker: null | Worker
+  private drawWorkerLink: null | Remote<DrawApi>
   constructor(options: WaveSurferOptions, audioElement?: HTMLElement) {
     super()
-
     this.subscriptions = []
     this.options = options
-
+    this.drawWorker = null
+    this.drawWorkerLink = null
+    if (options.renderMode === 'worker') {
+      console.log(new URL('./draw.worker.js', import.meta.url))
+      this.drawWorker = new Worker(new URL('./draw.worker.js', import.meta.url), { type: 'module' })
+      this.drawWorkerLink = wrap<DrawApi>(this.drawWorker)
+    }
     const parent = this.parentFromOptionsContainer(options.container)
     this.parent = parent
 
@@ -298,6 +305,13 @@ class Renderer extends EventEmitter<RendererEvents> {
       this.scrollStream.cleanup()
       this.scrollStream = null
     }
+    //clear worker
+    if (this.drawWorker !== null && this.drawWorkerLink !== null) {
+      if (typeof this.drawWorkerLink[releaseProxy] === 'function') {
+        this.drawWorkerLink[releaseProxy]()
+      }
+      this.drawWorker.terminate()
+    }
   }
 
   private createDelay(delayMs = 10): () => Promise<void> {
@@ -386,12 +400,12 @@ class Renderer extends EventEmitter<RendererEvents> {
       barAlign: options.barAlign,
       barMinHeight,
     })
-
+    //TODO render bar longtime work
     ctx.beginPath()
 
     for (const segment of segments) {
       if (barRadius && 'roundRect' in ctx) {
-        ;(
+        ; (
           ctx as CanvasRenderingContext2D & {
             roundRect: (
               x: number,
@@ -411,17 +425,32 @@ class Renderer extends EventEmitter<RendererEvents> {
     ctx.closePath()
   }
 
-  private renderLineWaveform(
+  private async renderLineWaveform(
     channelData: ChannelData,
     _options: WaveSurferOptions,
     ctx: CanvasRenderingContext2D,
     vScale: number,
   ) {
     const { width, height } = ctx.canvas
-    const paths = utils.calculateLinePaths({ channelData, width, height, vScale })
-
+    let paths: utils.LinePath[] | null = null
+    if (this.drawWorker === null) {
+      paths = utils.calculateLinePaths({ channelData, width, height, vScale })
+    } else {
+      // calculateLinePaths with jsworker
+      const primaryChannelOri = channelData[0] || []
+      const secondaryChannelOri = channelData[1] || primaryChannelOri
+      const primaryChannel =
+        primaryChannelOri instanceof Float32Array ? primaryChannelOri : Float32Array.from(primaryChannelOri)
+      const secondaryChannel =
+        secondaryChannelOri instanceof Float32Array ? secondaryChannelOri : Float32Array.from(secondaryChannelOri)
+      paths = await this.drawWorkerLink!.drawChannel(
+        transfer(primaryChannel, [primaryChannel.buffer]),
+        transfer(secondaryChannel, [secondaryChannel.buffer]),
+        { width, height, vScale },
+      )
+    }
+    // draw canvas
     ctx.beginPath()
-
     for (const path of paths) {
       if (!path.length) continue
       ctx.moveTo(path[0].x, path[0].y)
@@ -430,12 +459,11 @@ class Renderer extends EventEmitter<RendererEvents> {
         ctx.lineTo(point.x, point.y)
       }
     }
-
     ctx.fill()
     ctx.closePath()
   }
 
-  private renderWaveform(channelData: ChannelData, options: WaveSurferOptions, ctx: CanvasRenderingContext2D) {
+  private async renderWaveform(channelData: ChannelData, options: WaveSurferOptions, ctx: CanvasRenderingContext2D) {
     ctx.fillStyle = this.convertColorValues(options.waveColor, ctx)
 
     if (options.renderFunction) {
@@ -451,14 +479,14 @@ class Renderer extends EventEmitter<RendererEvents> {
     })
 
     if (utils.shouldRenderBars(options)) {
-      this.renderBarWaveform(channelData, options, ctx, vScale)
+      await this.renderBarWaveform(channelData, options, ctx, vScale)
       return
     }
 
-    this.renderLineWaveform(channelData, options, ctx, vScale)
+    await this.renderLineWaveform(channelData, options, ctx, vScale)
   }
 
-  private renderSingleCanvas(
+  private async renderSingleCanvas(
     data: ChannelData,
     options: WaveSurferOptions,
     width: number,
@@ -480,9 +508,9 @@ class Renderer extends EventEmitter<RendererEvents> {
 
     if (options.renderFunction) {
       ctx.fillStyle = this.convertColorValues(options.waveColor, ctx)
-      options.renderFunction(data, ctx)
+      await options.renderFunction(data, ctx)
     } else {
-      this.renderWaveform(data, options, ctx)
+      await this.renderWaveform(data, options, ctx)
     }
 
     // Draw a progress canvas
@@ -502,7 +530,7 @@ class Renderer extends EventEmitter<RendererEvents> {
     }
   }
 
-  private renderMultiCanvas(
+  private async renderMultiCanvas(
     channelData: ChannelData,
     options: WaveSurferOptions,
     width: number,
@@ -521,7 +549,7 @@ class Renderer extends EventEmitter<RendererEvents> {
     if (singleCanvasWidth === 0) return
 
     // Draw a single canvas
-    const draw = (index: number) => {
+    const draw = async (index: number) => {
       if (index < 0 || index >= numCanvases) return
       if (drawnIndexes[index]) return
       drawnIndexes[index] = true
@@ -533,7 +561,7 @@ class Renderer extends EventEmitter<RendererEvents> {
 
       if (clampedWidth <= 0) return
       const data = utils.sliceChannelData({ channelData, offset, clampedWidth, totalWidth })
-      this.renderSingleCanvas(data, options, clampedWidth, height, offset, canvasContainer, progressContainer)
+      await this.renderSingleCanvas(data, options, clampedWidth, height, offset, canvasContainer, progressContainer)
     }
 
     // Clear canvases to avoid too many DOM nodes
@@ -550,9 +578,11 @@ class Renderer extends EventEmitter<RendererEvents> {
 
     // Render all canvases if the waveform doesn't scroll
     if (!this.isScrollable) {
+      const drawPromiseList = []
       for (let i = 0; i < numCanvases; i++) {
-        draw(i)
+        drawPromiseList.push(draw(i))
       }
+      await Promise.all(drawPromiseList)
       return
     }
 
@@ -576,7 +606,7 @@ class Renderer extends EventEmitter<RendererEvents> {
     }
   }
 
-  private renderChannel(
+  private async renderChannel(
     channelData: ChannelData,
     { overlay, ...options }: WaveSurferOptions & { overlay?: boolean },
     width: number,
@@ -597,7 +627,7 @@ class Renderer extends EventEmitter<RendererEvents> {
     this.progressWrapper.appendChild(progressContainer)
 
     // Render the waveform
-    this.renderMultiCanvas(channelData, options, width, height, canvasContainer, progressContainer)
+    await this.renderMultiCanvas(channelData, options, width, height, canvasContainer, progressContainer)
   }
 
   async render(audioData: AudioBuffer) {
@@ -647,13 +677,13 @@ class Renderer extends EventEmitter<RendererEvents> {
       // Render a waveform for each channel
       for (let i = 0; i < audioData.numberOfChannels; i++) {
         const options = { ...this.options, ...this.options.splitChannels?.[i] }
-        this.renderChannel([audioData.getChannelData(i)], options, width, i)
+        await this.renderChannel([audioData.getChannelData(i)], options, width, i)
       }
     } else {
       // Render a single waveform for the first two channels (left and right)
       const channels = [audioData.getChannelData(0)]
       if (audioData.numberOfChannels > 1) channels.push(audioData.getChannelData(1))
-      this.renderChannel(channels, this.options, width, 0)
+      await this.renderChannel(channels, this.options, width, 0)
     }
 
     // Must be emitted asynchronously for backward compatibility

@@ -1,5 +1,5 @@
-import EventEmitter from './event-emitter.js'
-import type WaveSurfer from './wavesurfer.js'
+import EventEmitter from './event-emitter.ts'
+import type WaveSurfer from './wavesurfer.ts'
 
 export type BasePluginEvents = {
   destroy: []

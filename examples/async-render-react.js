@@ -1,5 +1,5 @@
-// React example
-// See https://github.com/katspaugh/wavesurfer-react
+
+// wavesurfer-react See https://github.com/katspaugh/wavesurfer-react
 
 import * as React from 'react'
 const { useMemo, useState, useCallback, useRef } = React
@@ -10,9 +10,8 @@ import Timeline from 'wavesurfer.js/dist/plugins/timeline.esm.js'
 
 const audioUrls = [
   '/examples/audio/audio.wav',
-  '/examples/audio/stereo.mp3',
-  '/examples/audio/mono.mp3',
-  '/examples/audio/librivox.mp3',
+  '/examples/audio/long-audio/bilibilivideoBV1ne2rBPExw.mp3',
+  '/examples/audio/long-audio/gufengdj4h.mp3'
 ]
 
 const formatTime = (seconds) => [seconds / 60, seconds % 60].map((v) => `0${Math.floor(v)}`.slice(-2)).join(':')
@@ -29,6 +28,7 @@ const App = () => {
     progressColor: 'rgb(100, 0, 100)',
     url: audioUrls[urlIndex],
     plugins: useMemo(() => [Timeline.create()], []),
+    renderMode: 'worker'
   })
 
   const onUrlChange = useCallback(() => {
@@ -42,14 +42,10 @@ const App = () => {
   return (
     <>
       <div ref={containerRef} />
-
       <p>Current audio: {audioUrls[urlIndex]}</p>
-
       <p>Current time: {formatTime(currentTime)}</p>
-
       <div style={{ margin: '1em 0', display: 'flex', gap: '1em' }}>
         <button onClick={onUrlChange}>Change audio</button>
-
         <button onClick={onPlayPause} style={{ minWidth: '5em' }}>
           {isPlaying ? 'Pause' : 'Play'}
         </button>

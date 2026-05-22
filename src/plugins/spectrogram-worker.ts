@@ -4,7 +4,7 @@
  */
 
 // Import centralized FFT functionality
-import FFT, { createFilterBankForScale, applyFilterBank } from '../fft.js'
+import FFT, { createFilterBankForScale, applyFilterBank } from '../fft.ts'
 
 // Global FFT instance (reused for performance)
 let fft: FFT | null = null

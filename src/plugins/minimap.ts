@@ -2,9 +2,9 @@
  * Minimap is a tiny copy of the main waveform serving as a navigation tool.
  */
 
-import BasePlugin, { type BasePluginEvents } from '../base-plugin.js'
-import WaveSurfer, { type WaveSurferOptions } from '../wavesurfer.js'
-import createElement from '../dom.js'
+import BasePlugin, { type BasePluginEvents } from '../base-plugin.ts'
+import WaveSurfer, { type WaveSurferOptions } from '../wavesurfer.ts'
+import createElement from '../dom.ts'
 
 export type MinimapPluginOptions = {
   overlayColor?: string

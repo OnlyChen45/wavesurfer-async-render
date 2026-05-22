@@ -21,9 +21,9 @@
  * });
  */
 
-import { BasePlugin, BasePluginEvents } from '../base-plugin.js'
-import { effect } from '../reactive/store.js'
-import { fromEvent } from '../reactive/event-streams.js'
+import { BasePlugin, BasePluginEvents } from '../base-plugin.ts'
+import { effect } from '../reactive/store.ts'
+import { fromEvent } from '../reactive/event-streams.ts'
 
 export type ZoomPluginOptions = {
   /**

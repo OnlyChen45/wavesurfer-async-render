@@ -1,4 +1,4 @@
-import type { WaveSurferOptions } from './wavesurfer.js'
+import type { WaveSurferOptions } from './wavesurfer.ts'
 
 export type ChannelData = Array<Float32Array | number[]>
 

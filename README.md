@@ -15,6 +15,18 @@
 
 此外，本Demo修改了rollup.config,确保了打包的wavesurfer.esm.js是全量的。
 
+## 交流&&支持
+
+本人在工作中基于 wavesurfer.js 和 wavesurfer-multitrack 进行定制开发时长约8个月，定制了波形渲染算法，解决了长音频卡顿和canvas渲染报错问题，定制并维护了了一个Web轻量多轨播放器。  
+
+🏗 后续我将维护wavesurfer-multitrack，看工作之余是否有空。  
+交流邮箱：onlychen1999@163.com  
+
+欢迎交流。   
+
+希望推进wavesurfer-multitrack维护进度，也欢迎致信接洽，有投喂的话我会尽量安排。   
+
+
 ## 核心能力
 
 - 波形渲染（Canvas 2D）
